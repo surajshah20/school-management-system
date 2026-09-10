@@ -3,6 +3,8 @@ const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
+const { verifyToken, requireRole } = require('./authMiddleware');
+
 require('dotenv').config();
 
 const app = express();
@@ -110,6 +112,14 @@ app.post('/api/login', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// GET: Admin-only protected route
+app.get('/api/admin/dashboard', verifyToken, requireRole(['admin']), (req, res) => {
+  res.json({ 
+    message: 'Welcome to the Admin Dashboard', 
+    admin: req.user 
+  });
 });
 
 const PORT = process.env.PORT || 5000;
