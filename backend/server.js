@@ -1,6 +1,8 @@
 const express = require('express');
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+
 require('dotenv').config();
 
 const app = express();
@@ -56,6 +58,55 @@ app.api = app.post('/api/register', async (req, res) => {
     } finally {
       client.release();
     }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST: Authenticate user and issue JWT
+app.post('/api/login', async (req, res) => {
+  const { user_identifier, password } = req.body;
+
+  try {
+    // 1. Find user by their identifier
+    const userResult = await pool.query(
+      `SELECT u.id, u.user_identifier, u.email, u.password_hash, r.name AS role 
+       FROM users u 
+       JOIN roles r ON u.role_id = r.id 
+       WHERE u.user_identifier = $1`,
+      [user_identifier]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(401).json({ error: 'Invalid user identifier or password' });
+    }
+
+    const user = userResult.rows[0];
+
+    // 2. Compare submitted password with stored bcrypt hash
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Invalid user identifier or password' });
+    }
+
+    // 3. Generate a secure JWT valid for 24 hours
+    const token = jwt.sign(
+      { userId: user.id, role: user.role, identifier: user.user_identifier },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: user.id,
+        user_identifier: user.user_identifier,
+        email: user.email,
+        role: user.role
+      }
+    });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
