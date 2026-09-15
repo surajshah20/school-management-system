@@ -1,13 +1,13 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Login />} />
-        {/* Placeholder Dashboard Route */}
-        <Route path="/dashboard" element={<div className="p-8 text-2xl font-bold text-green-600">You made it to the Dashboard!</div>} />
+        <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </Router>
   );
